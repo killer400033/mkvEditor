@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container my-5">
+        <h1 class="mb-4">File Browser</h1>
+        <div class="mb-3">
+            <strong>Current Path:</strong> {{ current_path }}
+        </div>
+        {% if structure.error %}
+            <div class="alert alert-danger">{{ structure.error }}</div>
+        {% else %}
+            <div class="list-group">
+                {% if current_path != '/' %}
+                    <a href="{{ request.path + '?path=' + parent_path }}" class="list-group-item list-group-item-action">
+                        .. (Parent Directory)
+                    </a>
+                {% endif %}
+                {% for directory in structure.directories %}
+                    <a href="{{ request.path + '?path=' + current_path + '/' + directory }}" class="list-group-item list-group-item-action">
+                        📁 {{ directory }}
+                    </a>
+                {% endfor %}
+                {% for file in structure.files %}
+                    {% if file.is_mkv %}
+                        <a href="{{ url_for('files') + '?path=' + current_path + '/' + file.name }}" class="list-group-item list-group-item-action">
+                            📄 {{ file.name }}
+                        </a>
+                    {% else %}
+                        <span class="list-group-item">📄 {{ file.name }}</span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

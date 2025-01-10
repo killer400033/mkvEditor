@@ -1,0 +1,11 @@
+<li class="list-group-item track-item" id="track-{{ track.track_id }}-{{ track.file_name }}">
+    <strong>Track ID:</strong> {{ track.track_id }}<br>
+    <strong>Language:</strong> 
+    <span class="text-secondary">{{ track.language if track.language else 'Unknown' }}</span><br>
+    <strong>Default:</strong>
+    <button type="button" class="btn btn-toggle {% if track.default == '1' %}btn-success{% else %}btn-danger{% endif %}"
+        data-track-id="{{ track.track_id }}" data-file-name="{{ track.file_name }}" data-default="{{ track.default }}" og-default="{{ track.default }}">
+        {% if track.default == '1' %}Yes{% else %}No{% endif %}
+    </button>
+    <input type="hidden" name="track_{{ track.track_id }}-{{ track.file_name }}" value="{{ track.default }}">
+</li>

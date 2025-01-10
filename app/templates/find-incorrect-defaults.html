@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="mb-4 text-primary">Find Incorrect Default Tracks</h1>
+
+    <!-- Default Languages Input -->
+    <div class="mb-4">
+        <label for="default-languages" class="form-label">Searching for media without the following as default:</label>
+        <div id="default-languages-list" class="d-flex flex-wrap mt-2 gap-2"></div>
+        <div id="default-languages-input" class="input-group">
+            <input type="text" id="language-input" class="form-control" placeholder="Enter a language and press Enter">
+            <button class="btn btn-secondary" id="add-language">Add</button>
+        </div>
+        <button class="btn btn-primary mt-3" id="search-button" style="display: none; margin: 0 auto; display: block;">Search</button>
+    </div>
+
+    <!-- Results -->
+    <div id="result" class="mt-4" style="display: none;">
+        <h3 class="text-success">Files with Incorrect Default Tracks</h3>
+        <ul id="result-list" class="list-group"></ul>
+    </div>
+</div>
+
+<style>
+.tracks-container {
+    display: flex;
+    gap: 20px; /* Adds space between track groups */
+}
+
+.track-group ul {
+    list-style: none; /* Removes bullet points */
+    padding: 0; /* Removes default padding */
+    margin: 0; /* Removes default margin */
+}
+
+.track-group {
+    flex: 1; /* Ensures equal width for each track group */
+    display: flex;
+    flex-direction: column; /* Keeps items in each group vertical */
+}
+.file-item {
+    border: 1px solid #ddd; /* Add a border for visual separation */
+    border-radius: 5px; /* Rounded corners for a smoother look */
+    margin-bottom: 15px; /* Space between file items */
+    padding: 15px; /* Add padding for better spacing inside the item */
+    background-color: #f9f9f9; /* Light background for contrast */
+}
+
+.file-item .file-header {
+    margin-bottom: 10px; /* Space between the file header and tracks */
+    font-weight: bold; /* Make the file header stand out */
+}
+
+.tracks-container {
+    display: flex;
+    gap: 20px; /* Space between audio and subtitle groups */
+}
+
+.track-group {
+    flex: 1; /* Ensure equal space for track groups */
+    background-color: #ffffff; /* White background for contrast */
+    padding: 10px;
+    border: 1px solid #ccc; /* Subtle border for track groups */
+    border-radius: 5px;
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const defaultLanguages = new Set({{ default_languages | tojson }});
+    const languageInput = document.getElementById("language-input");
+    const languagesList = document.getElementById("default-languages-list");
+    const searchButton = document.getElementById("search-button");
+    const addLangButton = document.getElementById("add-language");
+    const result = document.getElementById("result");
+
+    // Add language badge to UI
+    const addLanguageToUI = (language) => {
+        const languageChip = document.createElement("span");
+        languageChip.classList.add("badge", "bg-primary", "p-2", "text-white", "d-flex", "align-items-center");
+        languageChip.textContent = language;
+
+        // Remove button for each language
+        const removeButton = document.createElement("button");
+        removeButton.textContent = "x";
+        removeButton.classList.add("btn", "btn-danger", "btn-sm", "ms-2");
+        removeButton.onclick = () => {
+            defaultLanguages.delete(language);
+            languageChip.remove();
+        };
+
+        languageChip.appendChild(removeButton);
+        languagesList.appendChild(languageChip);
+    };
+
+    // Populate default languages on load
+    defaultLanguages.forEach(language => {
+        addLanguageToUI(language);
+    });
+
+    // Event listener for add language
+    addLangButton.addEventListener("click", function() {
+        const language = languageInput.value.trim();
+        if (language && !defaultLanguages.has(language)) {
+            defaultLanguages.add(language);
+            addLanguageToUI(language);
+        }
+        languageInput.value = "";
+    });
+
+    // Event listener for Apply button
+    searchButton.addEventListener("click", () => {
+        fetch("/process-incorrect-defaults/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ languages: Array.from(defaultLanguages) })
+        })
+        .then(response => response.json())
+        .then(data => {
+            result.style.display = "block";
+
+            // Populate the result list
+            const resultList = document.getElementById("result-list");
+            resultList.innerHTML = "";
+
+            data.forEach(file => {
+                const li = document.createElement("li");
+                li.classList.add("list-group-item", "file-item");
+
+                // Separate audio and subtitle tracks
+                const audioTracks = file.tracks.filter(track => track.track_type.toLowerCase() === "audio");
+
+                const subtitleTracks = file.tracks.filter(track => track.track_type.toLowerCase() === "subtitles");
+
+                let audioHTML = '';
+                let subtitleHTML = '';
+
+                // Display audio tracks
+                if (audioTracks.length > 0) {
+                    audioTracks.forEach(track => {
+                        audioHTML += track.html;
+                    });
+                    audioHTML += `</ul>`;
+                }
+
+                // Display subtitle tracks
+                if (subtitleTracks.length > 0) {
+                    subtitleTracks.forEach(track => {
+                        subtitleHTML += track.html;
+                    });
+                    subtitleHTML += `</ul>`;
+                }
+
+                li.innerHTML = `
+                    <form method="POST" action="/apply_file_changes?file_path=${encodeURIComponent(file.file_path)}">
+                        <div class="file-header">
+                            📄 <a href="/files/?path=${encodeURIComponent(file.file_path)}" class="list-group-item-action">
+                                ${file.file_path.split('/').pop()}
+                            </a>
+                        </div>
+                        <div class="tracks-container">
+                            ${audioHTML ? `<div class="track-group"><strong>Audio Tracks:</strong>${audioHTML}</div>` : ''}
+                            ${subtitleHTML ? `<div class="track-group"><strong>Subtitle Tracks:</strong>${subtitleHTML}</div>` : ''}
+                        </div>
+                    </form>
+                `;
+                resultList.appendChild(li);
+            });
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            alert("An error occurred while processing the files.");
+        });
+    });
+
+    // Show loading indicator
+    result.style.display = "none";
+});
+
+</script>
+{% endblock %}

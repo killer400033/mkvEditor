@@ -111,6 +111,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Event listener for Apply button
     searchButton.addEventListener("click", () => {
+        result.style.display = "none";
         fetch("/process-incorrect-defaults/", {
             method: "POST",
             headers: {

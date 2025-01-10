@@ -18,6 +18,15 @@ class Track:
             "default": self.default,
             "file_name": self.file_name
         }
+    
+    @staticmethod
+    def from_dict(data):
+        track = Track(track_id=data["track_id"])
+        track.track_type=data["track_type"]
+        track.language=data["language"]
+        track.default=data["default"]
+        track.file_name=data["file_name"]
+        return track
 
 class MkvFile:
     def __init__(self, file_path):
@@ -32,3 +41,9 @@ class MkvFile:
             "file_path": self.file_path,
             "tracks": [track.to_dict() for track in self.tracks] if self.tracks else []
         }
+    
+    @staticmethod
+    def from_dict(data):
+        mkv_file = MkvFile(file_path=data["file_path"])
+        mkv_file.tracks = [Track.from_dict(track) for track in data.get("tracks", [])]
+        return mkv_file

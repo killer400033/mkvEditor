@@ -5,6 +5,7 @@ import os
 import re
 import config
 from mkvEditor import get_mkv_tracks, apply_track_changes, get_mkv_bad_default
+from mkvFileCache import write_to_cache, read_from_cache
 from progress_stream import progress_listener, listener_event
 from classes import Track
 
@@ -62,7 +63,7 @@ def files():
 # GET route for showing all media files with incorrect track defaults
 @app.route("/find-incorrect-defaults/")
 def find_incorrect_defaults():
-    default_languages = read_from_file("languages")
+    default_languages = read_from_cache("languages")
     return render_template("find-incorrect-defaults.html", default_languages=default_languages)
 
 # POST route used to make changes to file tracks
@@ -82,7 +83,7 @@ def apply_file_changes():
 @app.route("/process-incorrect-defaults/", methods=["POST"])
 def process_incorrect_defaults():
     languages = request.json.get("languages")
-    write_to_file("languages", languages)
+    write_to_cache("languages", languages)
 
     mkv_files = get_mkv_bad_default(languages)
     mkv_files_dict = []
@@ -107,41 +108,6 @@ def stream_progress():
                 yield f"data: {json.dumps(progress_listener)}\n\n"
             listener_event.clear()
     return Response(stream_with_context(generate()), content_type='text/event-stream')
-
-
-def write_to_file(key, data):
-    file_path = os.path.join(config.CACHE_DIR, "data.json")
-    
-    try:
-        if os.path.exists(file_path):
-            with open(file_path, "r") as f:
-                existing_data = json.load(f)
-        else:
-            existing_data = {}
-
-        existing_data[key] = data
-
-        with open(file_path, "w") as f:
-            json.dump(existing_data, f, indent=4)
-
-    except Exception as e:
-        app.logger.error(f"Failed to update languages in file: {e}")
-
-def read_from_file(key):
-    file_path = os.path.join(config.CACHE_DIR, "data.json")
-    
-    try:
-        if os.path.exists(file_path):
-            with open(file_path, "r") as f:
-                existing_data = json.load(f)
-        else:
-            existing_data = {}
-
-        return existing_data.get(key)
-
-    except Exception as e:
-        app.logger.error(f"Failed to read data from file: {e}")
-        return None
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -35,7 +35,7 @@ The File Window provides an interface to view/ edit the tracks in an `.mkv` file
 
 
 ### Find Incorrect Defaults
-The Find Incorrect Defaults window is used to search for media where the default tracks do not match a given set of languages. The set of correct languages is set using the search bare shown below:
+The Find Incorrect Defaults window is used to search for media where the default tracks do not match a given set of languages. The set of correct languages is set using the search bar shown below:
 
 ![image](https://github.com/user-attachments/assets/2d7b542e-102a-445e-b922-ef2a0d81588b)
 
